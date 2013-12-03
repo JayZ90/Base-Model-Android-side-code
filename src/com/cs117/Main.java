@@ -37,13 +37,13 @@ public class Main extends Activity implements SensorEventListener {
     private final float pVerNOISE = (float) 15.0;
     private final float nHorNOISE = (float) -6.0;
     private final float nVerNOISE = (float) -10.0;
-    private final String up = "Drone is moving UP";
-    private final String down = "Drone is moving DOWN";
-    private final String left = "Drone is moving LEFT";
-    private final String right = "Drone is moving RIGHT";
-    private final String forward = "Drone is moving FORWARD";
-    private final String backward = "Drone is moving BACKWARD";
-    private final String none = "Drone is waiting for command";
+    private final String up = "Drone is moving UP\n";
+    private final String down = "Drone is moving DOWN\n";
+    private final String left = "Drone is moving LEFT\n";
+    private final String right = "Drone is moving RIGHT\n";
+    private final String forward = "Drone is moving FORWARD\n";
+    private final String backward = "Drone is moving BACKWARD\n";
+    private final String none = "Drone is waiting for command\n";
 
 	private static final int REQUEST_ENABLE_BT = 1;
 	private BluetoothAdapter btAdapter = null;
@@ -71,43 +71,6 @@ public class Main extends Activity implements SensorEventListener {
         
 		btAdapter = BluetoothAdapter.getDefaultAdapter();
 		CheckBTState();
-		
-        // Set up a pointer to the remote node using it's address.
-        BluetoothDevice device = btAdapter.getRemoteDevice(address);
-
-
-        // Two things are needed to make a connection:
-        //   A MAC address, which we got above.
-        //   A Service ID or UUID.  In this case we are using the
-        //     UUID for SPP.
-        try {
-            btSocket = device.createRfcommSocketToServiceRecord(MY_UUID);
-        } catch (IOException e) {
-            AlertBox("Fatal Error", "In onResume() and socket create failed: " + e.getMessage() + ".");
-        }
-
-        // Discovery is resource intensive.  Make sure it isn't going on
-        // when you attempt to connect and pass your message.
-        btAdapter.cancelDiscovery();
-        
-        // Establish the connection.  This will block until it connects.
-        try {
-            btSocket.connect();
-            System.out.println("\n...Connection established and data link opened...");
-        } catch (IOException e) {
-            try {
-                if(btSocket.isConnected())
-                    btSocket.close();
-            } catch (IOException e2) {
-                AlertBox("Fatal Error", "In onResume() and unable to close socket during connection failure" + e2.getMessage() + ".");
-            }
-        }
-        
-        try {
-            outStream = btSocket.getOutputStream();
-        } catch (IOException e) {
-            AlertBox("Fatal Error", "In onResume() and output stream creation failed:" + e.getMessage() + ".");
-        }
     }
     
 	private void CheckBTState() {
@@ -138,13 +101,46 @@ public class Main extends Activity implements SensorEventListener {
     protected void onResume() {
         super.onResume();
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+
+        System.out.println("\n...In onResume...\n...Attempting client connect...");
+
+        // Set up a pointer to the remote node using it's address.
+        BluetoothDevice device = btAdapter.getRemoteDevice(address);
+
+        // Two things are needed to make a connection:
+        //   A MAC address, which we got above.
+        //   A Service ID or UUID.  In this case we are using the
+        //     UUID for SPP.
+        try {
+            btSocket = device.createRfcommSocketToServiceRecord(MY_UUID);
+        } catch (IOException e) {
+            AlertBox("Fatal Error", "In onResume() and socket create failed: " + e.getMessage() + ".");
+        }
+
+        // Discovery is resource intensive.  Make sure it isn't going on
+        // when you attempt to connect and pass your message.
+        btAdapter.cancelDiscovery();
+
+        // Establish the connection.  This will block until it connects.
+        try {
+            btSocket.connect();
+            System.out.println("\n...Connection established and data link opened...");
+        } catch (IOException e) {
+            try {
+                if(btSocket.isConnected())
+                    btSocket.close();
+            } catch (IOException e2) {
+                AlertBox("Fatal Error", "In onResume() and unable to close socket during connection failure" + e2.getMessage() + ".");
+            }
+        }
+
+        
     }
 
     protected void onPause() {
         super.onPause();
         mSensorManager.unregisterListener(this);
         
-        /*
         if (btSocket.isConnected()) {
 
             try {
@@ -159,7 +155,7 @@ public class Main extends Activity implements SensorEventListener {
                 Log.d("30","--Pause failed to close socket");
                 AlertBox("Fatal Error", "In onPause() and failed to close socket." + e2.getMessage() + ".");
             }
-        }*/
+        }
     }
 
 	@Override
@@ -230,8 +226,16 @@ public class Main extends Activity implements SensorEventListener {
 			
 			
 	        //if(btSocket.isConnected())
-	        if(moveDir != none)
-	        {	
+	        if(moveDir != none && btSocket.isConnected())
+	        {
+
+	            
+	            try {
+	                outStream = btSocket.getOutputStream();
+	            } catch (IOException e) {
+	                AlertBox("Fatal Error", "In onResume() and output stream creation failed:" + e.getMessage() + ".");
+	            }
+
 	            // Create a data stream so we can talk to server.
 	            System.out.println("\n...Sending message to server...");
 	            
